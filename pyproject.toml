@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-finance-churn-model"
+version = "0.0.1"
+description = "ML project to predict customer churn (Exited) for a financial institution. UIMP/AEPIA Master's Kaggle Competition."
+authors = [
+    { name = "Miguel de la Fuente", email = "migueldlfuentem@gmail.com" },
+]
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "xgboost",
+    "lightgbm",
+    "joblib",
+    "python-dotenv",
+    "pyyaml",
+    "pydantic"
+]
+
+[project.urls]
+"Repository" = "https://github.com/migueldlfuentem/ml-finance-churn-model"
+
+[project.optional-dependencies]
+dev = [
+    "jupyterlab",
+    "matplotlib",
+    "ydata-profiling",
+    "boruta",
+    "mlflow",
+    "seaborn",
+    "black",
+    "pytest",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,20 @@
+{
+    "comments": "Variables seleccionadas automaticamente por Boruta",
+    "date": "2025-11-19 23:04",
+    "features": {
+        "numeric": [
+            "Age",
+            "Balance",
+            "NumOfProducts",
+            "IsActiveMember",
+            "BalanceSalaryRatio",
+            "TenureAgeRatio",
+            "CreditScore",
+            "EstimatedSalary"
+        ],
+        "categorical": [
+            "Geography",
+            "Gender"
+        ]
+    }
+}
