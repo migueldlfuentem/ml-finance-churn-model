@@ -1,0 +1,12 @@
+feature,status
+Age,Confirmed
+Balance,Confirmed
+NumOfProducts,Confirmed
+IsActiveMember,Confirmed
+BalanceSalaryRatio,Confirmed
+TenureAgeRatio,Confirmed
+Geography_France,Confirmed
+Geography_Germany,Confirmed
+Gender_Female,Confirmed
+Gender_Male,Confirmed
+CreditScore,Tentative
