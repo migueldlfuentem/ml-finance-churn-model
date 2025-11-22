@@ -153,9 +153,8 @@ def train_with_cv(
     logger.info("  Entrenando modelo final con todos los datos y threshold optimizado...")
     pipeline.fit(X_train, y_train)
     
-    # Wrappear el pipeline con el threshold optimizado
     optimized_model = ThresholdClassifier(pipeline, threshold=avg_threshold)
-    optimized_model.fit(X_train, y_train)  # Fit del wrapper (no re-entrena, solo guarda referencia)
+    optimized_model.fit(X_train, y_train)
     
     logger.info(f"  ✓ Modelo wrapeado con threshold={avg_threshold:.4f}")
     
@@ -196,7 +195,7 @@ def train_with_cv(
                 )
     
     results = {
-        'pipeline': optimized_model,  # Retornar el modelo optimizado
+        'pipeline': optimized_model,
         'f1_mean': avg_f1,
         'optimal_threshold': avg_threshold,
         'mean_auc': mean_auc,
