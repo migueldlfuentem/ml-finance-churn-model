@@ -211,3 +211,6 @@ mlflow.db
 
 #pdf
 *.pdf
+
+#catboost
+catboost_info/*
