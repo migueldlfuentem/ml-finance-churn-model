@@ -219,7 +219,7 @@
 	
 	\begin{itemize}
 		\item \textbf{Dominio de Ensembles Boosting:} \textit{CatBoost} se posiciona como el modelo con mejor rendimiento global (F1 $\approx$ 0.61), seguido muy de cerca por \textit{LightGBM} y \textit{XGBoost}. Esto valida la hipótesis de que los árboles de decisión potenciados por gradiente son el estado del arte para datos tabulares.
-		\item \textbf{Competitividad del MLP:} Es destacable que el Perceptrón Multicapa (\textit{MLP\_Network}) alcanza un rendimiento equiparable a los ensambles (F1 $\approx$ 0.60). Esto sugiere que, aplicando una arquitectura y técnicas adecuadas la red es capaz de capturar las `no linealidades'' del comportamiento del cliente.
+		\item \textbf{Competitividad del MLP:} Es destacable que el Perceptrón Multicapa (\textit{MLP\_Network}) alcanza un rendimiento equiparable a los ensambles (F1 $\approx$ 0.60). Esto sugiere que, aplicando una arquitectura y técnicas adecuadas, la red es capaz de capturar las `no linealidades'' del comportamiento del cliente.
 		\item \textbf{Limitaciones de Modelos Simples:} \textit{KNN} y \textit{Gaussian Naive Bayes} muestran un desempeño significativamente inferior (F1 $< 0.55$). En el caso de KNN, la "maldición de la dimensionalidad" y el ruido en las fronteras de decisión locales penalizan el resultado.
 	\end{itemize}
 	
@@ -269,7 +269,7 @@
 	\end{itemize}
 	
 	\textbf{Líneas Futuras:}
-	Como trabajo futuro, se propone explorar técnicas de ensamblaje heterogéneo (Stacking) combinando las predicciones del MLP y CatBoost para intentar romper el "techo de cristal" del 0.84 AUC, así como incorporar técnicas de explicabilidad (SHAP values) para proporcionar a los gestores bancarios el "porqué" de cada riesgo de fuga detectado.
+	Como trabajo futuro, se propone continuar con la implementación de buenas prácticas de MLOPs, empezando por integrar una herramienta de observabilidad para que, junto con una herramienta de Data Capture, dispongamos de la capacidad de identificar ``Data y Conceptual Drifts'' e identificar cuando reentrenar el modelo.
 	
 	\begin{figure}[H]
 		\centering
