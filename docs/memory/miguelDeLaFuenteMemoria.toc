@@ -1,0 +1,20 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción y Descripción del Problema}{2}{section.1}%
+\contentsline {section}{\numberline {2}Comprensión y Preprocesado de Datos}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Exploración y Visualización de datos}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Feature Engineering}{4}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Variables de Balance y Riqueza}{5}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Interacciones Demográficas y de Antigüedad}{5}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Perfil de Crédito}{5}{subsubsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.4}Engagement y Scores Sintéticos}{5}{subsubsection.2.2.4}%
+\contentsline {subsection}{\numberline {2.3}Diseño de Pipelines de Preprocesamiento}{6}{subsection.2.3}%
+\contentsline {section}{\numberline {3}Modelado y Entrenamiento}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Selección y Optimización de Algoritmos}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Estrategia de Validación y MLOps}{7}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Validación Cruzada y Prevención de Fugas de Datos}{7}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Experiment Tracking y Registro de Modelos con MLflow}{8}{subsubsection.3.2.2}%
+\contentsline {section}{\numberline {4}Evaluación y Resultados}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Comparativa de Rendimiento (F1-Score Optimizado)}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Análisis de Capacidad Discriminativa (ROC-AUC)}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Selección del Modelo Final}{9}{subsection.4.3}%
+\contentsline {section}{\numberline {5}Conclusiones y Líneas Futuras}{10}{section.5}%

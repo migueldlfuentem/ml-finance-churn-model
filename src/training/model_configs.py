@@ -13,13 +13,10 @@ from ..config import RANDOM_SEED
 
 
 def get_model_configs():
-    """
-    Retorna diccionario con configuraciones de modelos predefinidas.
+    """Return dictionary with predefined model configurations.
     
-    Returns
-    -------
-    dict
-        Diccionario con instancias de modelos configurados
+    Returns:
+        Dictionary with configured model instances.
     """
     models = {
         "CatBoost": CatBoostClassifier(

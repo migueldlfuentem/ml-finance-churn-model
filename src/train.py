@@ -1,7 +1,7 @@
 """
-Script principal para entrenar modelos de predicción de churn.
+Main script for training churn prediction models.
 
-Uso:
+Usage:
     python -m src.train --models CatBoost LGBM --cv-folds 5 --use-smote
     python -m src.train --all-models --experiment-name "Production_Training"
 """
@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 
-# Añadir root al path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -30,116 +29,125 @@ logger = get_logger(__name__)
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Entrenar modelos de predicción de churn bancario"
+        description="Train bank churn prediction models"
     )
     
     parser.add_argument(
         '--models',
         nargs='+',
         choices=['CatBoost', 'LGBM', 'XGBoost', 'Random_Forest', 'MLP_Network', 'Gaussian_NB', 'KNN'],
-        help='Modelos a entrenar (separados por espacio)'
+        help='Models to train (space separated)'
     )
     
     parser.add_argument(
         '--all-models',
         action='store_true',
-        help='Entrenar todos los modelos disponibles'
+        help='Train all available models'
     )
     
     parser.add_argument(
         '--cv-folds',
         type=int,
         default=5,
-        help='Número de folds para validación cruzada (default: 5)'
+        help='Number of folds for cross-validation (default: 5)'
     )
     
     parser.add_argument(
         '--use-smote',
         action='store_true',
         default=True,
-        help='Usar SMOTE para balanceo de clases (default: True)'
+        help='Use SMOTE for class balancing (default: True)'
     )
     
     parser.add_argument(
         '--no-smote',
         action='store_true',
-        help='No usar SMOTE'
+        help='Do not use SMOTE'
     )
     
     parser.add_argument(
         '--test-size',
         type=float,
         default=0.2,
-        help='Proporción de datos para validación (default: 0.2)'
+        help='Proportion of data for validation (default: 0.2)'
     )
     
     parser.add_argument(
         '--experiment-name',
         type=str,
         default='Bank_Churn_Prediction',
-        help='Nombre del experimento en MLflow'
+        help='Experiment name in MLflow'
     )
     
     parser.add_argument(
         '--no-mlflow',
         action='store_true',
-        help='No loguear en MLflow'
+        help='Do not log to MLflow'
     )
     
     parser.add_argument(
         '--save-plots',
         action='store_true',
-        help='Guardar gráficos de resultados'
+        help='Save result plots'
+    )
+    
+    parser.add_argument(
+        '--no-threshold-wrapper',
+        action='store_true',
+        help='Do not use threshold wrapper (use default 0.5 threshold)'
     )
     
     return parser.parse_args()
 
 
 def main():
-    """Función principal de entrenamiento."""
+    """Main training function."""
     args = parse_args()
     
     logger.info("="*70)
-    logger.info("INICIO DEL ENTRENAMIENTO DE MODELOS")
+    logger.info("MODEL TRAINING START")
     logger.info("="*70)
     
-    logger.info("\n[1/5] Cargando datos...")
+    logger.info("\n[1/5] Loading data...")
     df_train = load_train_data()
     X, y = split_features_target(df_train)
     
-    logger.info(f"\n[2/5] Dividiendo datos (test_size={args.test_size})...")
+    logger.info(f"\n[2/5] Splitting data (test_size={args.test_size})...")
     X_train, X_val, y_train, y_val = train_test_split(
         X, y, 
         test_size=args.test_size, 
         random_state=RANDOM_SEED, 
         stratify=y
     )
-    logger.info(f"  Train: {X_train.shape[0]} muestras")
-    logger.info(f"  Validation: {X_val.shape[0]} muestras")
+    logger.info(f"  Train: {X_train.shape[0]} samples")
+    logger.info(f"  Validation: {X_val.shape[0]} samples")
     
     if not args.no_mlflow:
-        logger.info(f"\n[3/5] Configurando MLflow...")
+        logger.info(f"\n[3/5] Configuring MLflow...")
         setup_mlflow(experiment_name=args.experiment_name)
     else:
-        logger.info("\n[3/5] MLflow deshabilitado")
+        logger.info("\n[3/5] MLflow disabled")
     
-    logger.info("\n[4/5] Preparando modelos...")
+    logger.info("\n[4/5] Preparing models...")
     all_models = get_model_configs()
     
     if args.all_models:
         models_to_train = all_models
-        logger.info(f"  Entrenando TODOS los modelos ({len(models_to_train)})")
+        logger.info(f"  Training ALL models ({len(models_to_train)})")
     elif args.models:
         models_to_train = {k: v for k, v in all_models.items() if k in args.models}
-        logger.info(f"  Entrenando modelos seleccionados: {list(models_to_train.keys())}")
+        logger.info(f"  Training selected models: {list(models_to_train.keys())}")
     else:
-        # Default: entrenar solo los mejores
         default_models = ['CatBoost', 'LGBM', 'XGBoost']
         models_to_train = {k: v for k, v in all_models.items() if k in default_models}
-        logger.info(f"  Entrenando modelos por defecto: {list(models_to_train.keys())}")
+        logger.info(f"  Training default models: {list(models_to_train.keys())}")
     
-    logger.info("\n[5/5] Iniciando entrenamiento...")
+    logger.info("\n[5/5] Starting training...")
     use_smote = not args.no_smote if args.no_smote else args.use_smote
+    use_threshold_wrapper = not args.no_threshold_wrapper
+    
+    if not use_threshold_wrapper:
+        logger.info("  ⚠ Training WITHOUT threshold wrapper (using default 0.5)")
     
     results_df, roc_data = train_multiple_models(
         models_dict=models_to_train,
@@ -147,10 +155,11 @@ def main():
         y_train=y_train,
         n_splits=args.cv_folds,
         use_smote=use_smote,
-        log_to_mlflow=not args.no_mlflow
+        log_to_mlflow=not args.no_mlflow,
+        use_threshold_wrapper=use_threshold_wrapper
     )
     
-    logger.info("\n[6/6] Generando visualizaciones...")
+    logger.info("\n[6/6] Generating visualizations...")
     
     save_path_roc = None
     save_path_comparison = None
@@ -165,15 +174,15 @@ def main():
     plot_model_comparison(results_df, save_path=save_path_comparison)
     
     logger.info("\n" + "="*70)
-    logger.info("ENTRENAMIENTO COMPLETADO")
+    logger.info("TRAINING COMPLETED")
     logger.info("="*70)
-    logger.info(f"\nMejor modelo: {results_df.iloc[0]['Model']}")
+    logger.info(f"\nBest model: {results_df.iloc[0]['Model']}")
     logger.info(f"F1-Score: {results_df.iloc[0]['F1_Optimized']:.4f}")
-    logger.info(f"Threshold óptimo: {results_df.iloc[0]['Threshold']:.4f}")
+    logger.info(f"Optimal threshold: {results_df.iloc[0]['Threshold']:.4f}")
     logger.info(f"AUC: {results_df.iloc[0]['AUC']:.4f}")
     
     if not args.no_mlflow:
-        logger.info(f"\nRevisa los resultados en MLflow UI:")
+        logger.info(f"\nCheck results in MLflow UI:")
         logger.info(f"  mlflow ui")
     
     logger.info("\n" + "="*70)

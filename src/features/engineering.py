@@ -7,38 +7,30 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class FeatureEngineer(BaseEstimator, TransformerMixin):
-    """
-    Transformer que crea features derivadas para el modelo de churn.
+    """Transformer that creates derived features for the churn model.
     
-    Features creadas:
-    - Balance features: HasBalance, LogBalance, BalancePerProduct, BalanceSalaryRatio
-    - Age interactions: Age_Active_Interaction, TenureAgeRatio, CreditScore_Age_Ratio
-    - Product features: Products_Active_Interaction, HasMultipleProducts
-    - Credit features: CreditScore_Salary_Ratio, HighCreditScore
-    - Engagement scores: CustomerEngagement, RiskScore
-    
+    Created features:
+        - Balance features: HasBalance
+        - Age interactions: Age_Active_Interaction, TenureAgeRatio, CreditScore_Age_Ratio
+        - Credit features: CreditScore_Salary_Ratio, HighCreditScore
+        - Engagement scores: CustomerEngagement, RiskScore
     """
     
     def __init__(self):
         pass
 
     def fit(self, X, y=None):
-        """No requiere ajuste, retorna self."""
+        """No fitting required, returns self."""
         return self
 
     def transform(self, X):
-        """
-        Aplica feature engineering al DataFrame.
+        """Apply feature engineering to DataFrame.
         
-        Parameters
-        ----------
-        X : pd.DataFrame
-            DataFrame con las features originales
+        Args:
+            X: DataFrame with original features.
             
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame con features originales + features engineered
+        Returns:
+            DataFrame with original + engineered features.
         """
         X_new = X.copy()
 
@@ -73,48 +65,39 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
 
 
 class DropFeatures(BaseEstimator, TransformerMixin):
-    """
-    Transformer para eliminar columnas que no aportan valor al modelo.
+    """Transformer to remove columns that don't add value to the model.
     
-    Parameters
-    ----------
-    features_to_drop : list, optional
-        Lista de nombres de columnas a eliminar (ej: ['CustomerId', 'Surname'])
+    Args:
+        features_to_drop: List of column names to remove (e.g., ['CustomerId', 'Surname']). Defaults to None.
         
-    Examples
-    --------
-    >>> # Uso básico
-    >>> drop = DropFeatures(features_to_drop=['CustomerId', 'Surname'])
-    >>> X_clean = drop.fit_transform(X)
-    
-    >>> # En un pipeline
-    >>> pipeline = Pipeline([
-    ...     ('drop', DropFeatures(['CustomerId', 'Surname'])),
-    ...     ('scaler', StandardScaler()),
-    ...     ('model', LogisticRegression())
-    ... ])
+    Examples:
+        Basic usage:
+            >>> drop = DropFeatures(features_to_drop=['CustomerId', 'Surname'])
+            >>> X_clean = drop.fit_transform(X)
+        
+        In a pipeline:
+            >>> pipeline = Pipeline([
+            ...     ('drop', DropFeatures(['CustomerId', 'Surname'])),
+            ...     ('scaler', StandardScaler()),
+            ...     ('model', LogisticRegression())
+            ... ])
     """
     
     def __init__(self, features_to_drop=None):
         self.features_to_drop = features_to_drop if features_to_drop is not None else []
 
     def fit(self, X, y=None):
-        """No requiere ajuste, retorna self."""
+        """No fitting required, returns self."""
         return self
 
     def transform(self, X):
-        """
-        Elimina las columnas especificadas si existen en el DataFrame.
+        """Remove specified columns if they exist in the DataFrame.
         
-        Parameters
-        ----------
-        X : pd.DataFrame
-            DataFrame de entrada
+        Args:
+            X: Input DataFrame.
             
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame sin las columnas especificadas
+        Returns:
+            DataFrame without the specified columns.
         """
         X_out = X.copy()
         cols_to_drop = [col for col in self.features_to_drop if col in X_out.columns]

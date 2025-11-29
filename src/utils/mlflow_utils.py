@@ -14,48 +14,39 @@ def load_model_from_registry(
     version: Optional[str] = None,
     stage: Optional[str] = None
 ):
-    """
-    Carga un modelo desde MLflow Model Registry.
+    """Load a model from MLflow Model Registry.
     
-    Parameters
-    ----------
-    model_name : str
-        Nombre del modelo registrado (ej: 'churn-catboost')
-    version : str, optional
-        Versión específica del modelo (ej: '1', '2')
-    stage : str, optional
-        Stage del modelo ('Staging', 'Production', 'Archived')
+    Args:
+        model_name: Registered model name (e.g., 'churn-catboost').
+        version: Specific model version (e.g., '1', '2'). Defaults to None.
+        stage: Model stage ('Staging', 'Production', 'Archived'). Defaults to None.
         
-    Returns
-    -------
-    model
-        Modelo cargado desde MLflow
+    Returns:
+        Model loaded from MLflow.
         
-    Examples
-    --------
-    >>> # Cargar versión específica
-    >>> model = load_model_from_registry('churn-catboost', version='1')
-    
-    >>> # Cargar modelo en producción
-    >>> model = load_model_from_registry('churn-catboost', stage='Production')
+    Examples:
+        Load specific version:
+            >>> model = load_model_from_registry('churn-catboost', version='1')
+        
+        Load production model:
+            >>> model = load_model_from_registry('churn-catboost', stage='Production')
     """
     if version:
         model_uri = f"models:/{model_name}/{version}"
-        logger.info(f"Cargando modelo: {model_name} versión {version}")
+        logger.info(f"Loading model: {model_name} version {version}")
     elif stage:
         model_uri = f"models:/{model_name}/{stage}"
-        logger.info(f"Cargando modelo: {model_name} en stage {stage}")
+        logger.info(f"Loading model: {model_name} in stage {stage}")
     else:
-        # Cargar última versión
         model_uri = f"models:/{model_name}/latest"
-        logger.info(f"Cargando última versión de: {model_name}")
+        logger.info(f"Loading latest version of: {model_name}")
     
     try:
         model = mlflow.sklearn.load_model(model_uri)
-        logger.info(f"✓ Modelo cargado exitosamente")
+        logger.info(f"✓ Model loaded successfully")
         return model
     except Exception as e:
-        logger.error(f"Error cargando modelo: {e}")
+        logger.error(f"Error loading model: {e}")
         raise
 
 
@@ -64,31 +55,20 @@ def get_best_run(
     metric: str = "f1_mean_cv",
     ascending: bool = False
 ) -> Dict:
-    """
-    Obtiene el mejor run de un experimento basado en una métrica.
+    """Get the best run from an experiment based on a metric.
     
-    Parameters
-    ----------
-    experiment_name : str
-        Nombre del experimento
-    metric : str, default="f1_mean_cv"
-        Métrica para ordenar runs
-    ascending : bool, default=False
-        Si True, ordena ascendente (menor es mejor)
+    Args:
+        experiment_name: Experiment name.
+        metric: Metric to sort runs. Defaults to "f1_mean_cv".
+        ascending: If True, sorts ascending (lower is better). Defaults to False.
         
-    Returns
-    -------
-    Dict
-        Información del mejor run incluyendo run_id, metrics, params
+    Returns:
+        Best run information including run_id, metrics, params.
     """
-    logger.info(f"Buscando mejor run en experimento: {experiment_name}")
-    
-    # Obtener experimento
+    logger.info(f"Searching for best run in experiment: {experiment_name}")
     experiment = mlflow.get_experiment_by_name(experiment_name)
     if experiment is None:
-        raise ValueError(f"Experimento '{experiment_name}' no encontrado")
-    
-    # Buscar runs
+        raise ValueError(f"Experiment '{experiment_name}' not found")
     runs = mlflow.search_runs(
         experiment_ids=[experiment.experiment_id],
         order_by=[f"metrics.{metric} {'ASC' if ascending else 'DESC'}"],
@@ -96,11 +76,11 @@ def get_best_run(
     )
     
     if runs.empty:
-        raise ValueError(f"No se encontraron runs en el experimento '{experiment_name}'")
+        raise ValueError(f"No runs found in experiment '{experiment_name}'")
     
     best_run = runs.iloc[0]
     
-    logger.info(f"✓ Mejor run encontrado:")
+    logger.info(f"✓ Best run found:")
     logger.info(f"  Run ID: {best_run['run_id']}")
     logger.info(f"  {metric}: {best_run[f'metrics.{metric}']:.4f}")
     

@@ -6,23 +6,18 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 class ThresholdClassifier(BaseEstimator, ClassifierMixin):
-    """
-    Wrapper que aplica un threshold optimizado a las predicciones de un clasificador.
+    """Wrapper that applies an optimized threshold to classifier predictions.
     
-    Parameters
-    ----------
-    estimator : estimator
-        Clasificador base con método predict_proba
-    threshold : float
-        Threshold óptimo para clasificación binaria
+    Args:
+        estimator: Base classifier with predict_proba method.
+        threshold: Optimal threshold for binary classification. Defaults to 0.5.
         
-    Examples
-    --------
-    >>> from sklearn.ensemble import RandomForestClassifier
-    >>> base_model = RandomForestClassifier()
-    >>> model = ThresholdClassifier(base_model, threshold=0.53)
-    >>> model.fit(X_train, y_train)
-    >>> predictions = model.predict(X_test)  # Usa threshold 0.53
+    Examples:
+        >>> from sklearn.ensemble import RandomForestClassifier
+        >>> base_model = RandomForestClassifier()
+        >>> model = ThresholdClassifier(base_model, threshold=0.53)
+        >>> model.fit(X_train, y_train)
+        >>> predictions = model.predict(X_test)  # Uses threshold 0.53
     """
     
     def __init__(self, estimator, threshold=0.5):
@@ -30,34 +25,29 @@ class ThresholdClassifier(BaseEstimator, ClassifierMixin):
         self.threshold = threshold
     
     def fit(self, X, y):
-        """Entrena el estimador base."""
+        """Train the base estimator."""
         self.estimator.fit(X, y)
         self.classes_ = self.estimator.classes_
         return self
     
     def predict_proba(self, X):
-        """Retorna probabilidades del estimador base."""
+        """Return probabilities from the base estimator."""
         return self.estimator.predict_proba(X)
     
     def predict(self, X):
-        """
-        Predice usando el threshold optimizado.
+        """Predict using the optimized threshold.
         
-        Parameters
-        ----------
-        X : array-like
-            Features de entrada
+        Args:
+            X: Input features.
             
-        Returns
-        -------
-        array
-            Predicciones binarias usando el threshold optimizado
+        Returns:
+            Binary predictions using the optimized threshold.
         """
         proba = self.predict_proba(X)[:, 1]
         return (proba >= self.threshold).astype(int)
     
     def get_params(self, deep=True):
-        """Obtiene parámetros del wrapper y del estimador base."""
+        """Get parameters of the wrapper and base estimator."""
         params = {
             'estimator': self.estimator,
             'threshold': self.threshold
@@ -68,7 +58,7 @@ class ThresholdClassifier(BaseEstimator, ClassifierMixin):
         return params
     
     def set_params(self, **params):
-        """Establece parámetros del wrapper y del estimador base."""
+        """Set parameters of the wrapper and base estimator."""
         estimator_params = {}
         wrapper_params = {}
         

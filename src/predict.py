@@ -1,7 +1,7 @@
 """
-Script principal para generar predicciones con modelos entrenados.
+Main script for generating predictions with trained models.
 
-Uso:
+Usage:
     python -m src.predict --model-name churn-catboost --version 1
     python -m src.predict --model-name churn-catboost --stage Production --output custom_submission.csv
 """
@@ -26,56 +26,56 @@ logger = get_logger(__name__)
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Generar predicciones de churn con modelo entrenado"
+        description="Generate churn predictions with trained model"
     )
     
     parser.add_argument(
         '--model-name',
         type=str,
         required=True,
-        help='Nombre del modelo en MLflow Registry (ej: churn-catboost)'
+        help='Model name in MLflow Registry (e.g., churn-catboost)'
     )
     
     parser.add_argument(
         '--version',
         type=str,
-        help='Versión específica del modelo (ej: 1, 2, 3)'
+        help='Specific model version (e.g., 1, 2, 3)'
     )
     
     parser.add_argument(
         '--stage',
         type=str,
         choices=['Staging', 'Production', 'Archived'],
-        help='Stage del modelo en MLflow'
+        help='Model stage in MLflow'
     )
     
     parser.add_argument(
         '--test-data',
         type=str,
-        help='Ruta al archivo CSV de test (opcional, usa config por defecto)'
+        help='Path to test CSV file (optional, uses default from config)'
     )
     
     parser.add_argument(
         '--output',
         type=str,
-        help='Nombre del archivo de salida (opcional, genera automáticamente)'
+        help='Output file name (optional, generates automatically)'
     )
     
     parser.add_argument(
         '--output-dir',
         type=str,
-        help='Directorio de salida (opcional, usa submissions/ por defecto)'
+        help='Output directory (optional, uses submissions/ by default)'
     )
     
     return parser.parse_args()
 
 
 def main():
-    """Función principal de predicción."""
+    """Main prediction function."""
     args = parse_args()
     
     logger.info("="*70)
-    logger.info("GENERACIÓN DE PREDICCIONES")
+    logger.info("PREDICTION GENERATION")
     logger.info("="*70)
     
     db_path = project_root / "mlflow.db"
@@ -83,42 +83,42 @@ def main():
     mlflow.set_tracking_uri(tracking_uri)
     logger.info(f"\nMLflow tracking URI: {tracking_uri}")
     
-    logger.info(f"\n[1/4] Cargando modelo desde MLflow Registry...")
-    logger.info(f"  Modelo: {args.model_name}")
+    logger.info(f"\n[1/4] Loading model from MLflow Registry...")
+    logger.info(f"  Model: {args.model_name}")
     
     if args.version:
-        logger.info(f"  Versión: {args.version}")
+        logger.info(f"  Version: {args.version}")
         model = load_model_from_registry(args.model_name, version=args.version)
     elif args.stage:
         logger.info(f"  Stage: {args.stage}")
         model = load_model_from_registry(args.model_name, stage=args.stage)
     else:
-        logger.info(f"  Versión: latest")
+        logger.info(f"  Version: latest")
         model = load_model_from_registry(args.model_name)
     
-    logger.info(f"\n[2/4] Cargando datos de test...")
+    logger.info(f"\n[2/4] Loading test data...")
     if args.test_data:
         test_path = Path(args.test_data)
         df_test = pd.read_csv(test_path)
-        logger.info(f"  Datos cargados desde: {test_path}")
+        logger.info(f"  Data loaded from: {test_path}")
     else:
         df_test = load_test_data()
     
-    logger.info(f"  Total de muestras: {len(df_test)}")
+    logger.info(f"  Total samples: {len(df_test)}")
     
-    logger.info(f"\n[3/4] Generando predicciones...")
+    logger.info(f"\n[3/4] Generating predictions...")
     
     if 'CustomerId' in df_test.columns:
         customer_ids = df_test['CustomerId']
     else:
-        logger.warning("  ⚠ No se encontró columna 'CustomerId', usando índices")
+        logger.warning("  ⚠ 'CustomerId' column not found, using indices")
         customer_ids = df_test.index
     
     predictions = model.predict(df_test)
-    logger.info(f"  ✓ Predicciones generadas: {len(predictions)}")
-    logger.info(f"  Distribución: {pd.Series(predictions).value_counts().to_dict()}")
+    logger.info(f"  ✓ Predictions generated: {len(predictions)}")
+    logger.info(f"  Distribution: {pd.Series(predictions).value_counts().to_dict()}")
     
-    logger.info(f"\n[4/4] Creando archivo de submission...")
+    logger.info(f"\n[4/4] Creating submission file...")
     
     submission = pd.DataFrame({
         'CustomerId': customer_ids,
@@ -142,12 +142,12 @@ def main():
     output_path = output_dir / output_filename
     submission.to_csv(output_path, index=False)
     
-    logger.info(f"  ✓ Archivo guardado en: {output_path}")
-    logger.info(f"\nPrimeras filas del submission:")
+    logger.info(f"  ✓ File saved to: {output_path}")
+    logger.info(f"\nFirst rows of submission:")
     print(submission.head(10).to_string(index=False))
     
     logger.info("\n" + "="*70)
-    logger.info("PREDICCIONES COMPLETADAS")
+    logger.info("PREDICTIONS COMPLETED")
     logger.info("="*70)
 
 

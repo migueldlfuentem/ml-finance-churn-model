@@ -11,49 +11,39 @@ logger = get_logger(__name__)
 
 
 def load_train_data(path: Optional[Path] = None) -> pd.DataFrame:
-    """
-    Carga el dataset de entrenamiento.
+    """Load the training dataset.
     
-    Parameters
-    ----------
-    path : Path, optional
-        Ruta al archivo CSV. Si no se especifica, usa RAW_TRAIN_PATH del config.
+    Args:
+        path: Path to CSV file. If not specified, uses RAW_TRAIN_PATH from config. Defaults to None.
         
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame con los datos de entrenamiento
+    Returns:
+        DataFrame with training data.
     """
     if path is None:
         path = RAW_TRAIN_PATH
     
-    logger.info(f"Cargando datos de entrenamiento desde: {path}")
+    logger.info(f"Loading training data from: {path}")
     df = pd.read_csv(path)
-    logger.info(f"Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
+    logger.info(f"Data loaded: {df.shape[0]} rows, {df.shape[1]} columns")
     
     return df
 
 
 def load_test_data(path: Optional[Path] = None) -> pd.DataFrame:
-    """
-    Carga el dataset de test.
+    """Load the test dataset.
     
-    Parameters
-    ----------
-    path : Path, optional
-        Ruta al archivo CSV. Si no se especifica, usa RAW_TEST_PATH del config.
+    Args:
+        path: Path to CSV file. If not specified, uses RAW_TEST_PATH from config. Defaults to None.
         
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame con los datos de test
+    Returns:
+        DataFrame with test data.
     """
     if path is None:
         path = RAW_TEST_PATH
     
-    logger.info(f"Cargando datos de test desde: {path}")
+    logger.info(f"Loading test data from: {path}")
     df = pd.read_csv(path)
-    logger.info(f"Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas")
+    logger.info(f"Data loaded: {df.shape[0]} rows, {df.shape[1]} columns")
     
     return df
 
@@ -62,31 +52,25 @@ def split_features_target(
     df: pd.DataFrame, 
     target_col: Optional[str] = None
 ) -> Tuple[pd.DataFrame, pd.Series]:
-    """
-    Separa features y target del DataFrame.
+    """Split features and target from DataFrame.
     
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame completo con features y target
-    target_col : str, optional
-        Nombre de la columna target. Si no se especifica, usa TARGET_VARIABLE del config.
+    Args:
+        df: Complete DataFrame with features and target.
+        target_col: Target column name. If not specified, uses TARGET_VARIABLE from config. Defaults to None.
         
-    Returns
-    -------
-    Tuple[pd.DataFrame, pd.Series]
-        (X, y) donde X son las features y y es el target
+    Returns:
+        Tuple (X, y) where X are features and y is the target.
     """
     if target_col is None:
         target_col = TARGET_VARIABLE
     
     if target_col not in df.columns:
-        raise ValueError(f"Columna target '{target_col}' no encontrada en el DataFrame")
+        raise ValueError(f"Target column '{target_col}' not found in DataFrame")
     
     X = df.drop(columns=[target_col])
     y = df[target_col]
     
-    logger.info(f"Features: {X.shape[1]} columnas")
-    logger.info(f"Target: {y.name} (distribución: {y.value_counts().to_dict()})")
+    logger.info(f"Features: {X.shape[1]} columns")
+    logger.info(f"Target: {y.name} (distribution: {y.value_counts().to_dict()})")
     
     return X, y

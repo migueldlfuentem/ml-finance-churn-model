@@ -1,0 +1,281 @@
+\documentclass[11pt, a4paper]{article}
+
+% --- PREÁMBULO PARA PDFLATEX ---
+\usepackage[utf8]{inputenc} % Codificación de entrada UTF-8
+\usepackage[T1]{fontenc}    % Codificación de fuente T1 (soporte correcto para acentos)
+\usepackage[spanish, es-tabla]{babel} % Idioma español (es-tabla usa "Tabla" en lugar de "Cuadro")
+\usepackage{lmodern}        % Fuente Latin Modern (vectorial de alta calidad)
+
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+% --- CONFIGURACIÓN DE ESPACIADO Y SANGRÍA ---
+\usepackage{setspace}       % Paquete para controlar el interlineado
+%\onehalfspacing             % Establece interlineado de 1.5 (Estándar académico)
+\setlength{\parskip}{4pt}   % Añade un pequeño espacio vertical entre párrafos
+%\setlength{\parindent}{1cm} % Mantiene tu sangría personalizada
+% Corrección para listas en español
+\usepackage{enumitem}
+\setlist[itemize]{label=-}
+
+% --- PAQUETES ADICIONALES ---
+\usepackage{amsmath}
+\usepackage{booktabs} % Para tablas profesionales
+\usepackage{graphicx} % Para imágenes
+\graphicspath{ {../images/} }
+\usepackage{float}    % Para forzar posición de imágenes [H]
+\usepackage{xcolor}   % Para resaltar textos
+\usepackage[hidelinks]{hyperref} % Para enlaces (GitHub)
+\usepackage{caption}
+\usepackage{float}
+
+% --- DATOS DEL DOCUMENTO ---
+\title{\textbf{Predicción de Retención de Clientes en Entidad Financiera}\\ \large Máster Universitario en Investigación en Inteligencia Artificial (UIMP/AEPIA)}
+\author{Miguel de la Fuente Muñoz \\ \small Usuario Kaggle: \texttt{migueldlfuentem}}
+\date{\today}
+
+\begin{document}
+	
+	\maketitle
+	
+	\tableofcontents
+	\newpage
+	
+	\section{Introducción y Descripción del Problema}
+	
+	La retención de clientes es un pilar fundamental en la estrategia financiera, dado que el coste de adquisición de nuevos usuarios supera significativamente al de mantenimiento. Tal y como se detalla en la descripción de la competición, el objetivo de este proyecto es desarrollar un modelo predictivo capaz de \textbf{identificar a aquellos clientes que abandonarán sus servicios financieros} (variable \texttt{Exited} = 1), basándose en sus datos demográficos y financieros.
+	
+	Esta identificación permite focalizar los esfuerzos de la entidad y optimizar recursos en campañas de fidelización. Sin embargo, el proyecto afronta un desafío técnico considerable: el conjunto de datos presenta un escenario de \textbf{clases desbalanceadas}, donde la gran mayoría de clientes permanecen en la entidad. Esta naturaleza asimétrica del problema condicionará decisivamente la estrategia de modelado, obligando a buscar soluciones que eviten sesgos hacia la clase mayoritaria y prioricen la detección efectiva de los casos de fuga.
+	
+	A lo largo de las siguientes secciones se mostrará la aplicación de los conocimientos obtenidos en la asignatura para la resolución del problema de ``Retención de Clientes'', detallando desde el preprocesamiento y limpieza de datos hasta la selección, evaluación y optimización del modelo final. Con el objetivo de ir \textit{más allá} se han aplicado técnicas pertenecientes a la \textbf{metodología MLOps}, por ejemplo la implantación de fases de \textit{Experiment Tracking} y \textit{Model Registry} utilizando \textbf{MLflow}, así como el uso de librerías utilizadas en el ámbito laboral para realizar el EDA y el Feature Selection.
+	
+	\textbf{Repositorio de Código:} El código completo del proyecto se encuentra disponible en: \\
+	\url{https://github.com/migueldlfuentem/ml-finance-churn-model}
+	
+	\section{Comprensión y Preprocesado de Datos}
+	
+	La calidad de los datos es un factor determinante en el rendimiento de cualquier sistema de inteligencia artificial. En esta sección se detalla el flujo de trabajo aplicado para transformar los datos brutos en información procesable por los algoritmos de aprendizaje. Se ha seguido un enfoque sistemático que comienza con un análisis exploratorio (EDA) del conjunto de datos de entrenamiento (8,000 instancias), continúa con la limpieza de inconsistencias detectadas y culmina con la definición de una ``pipeline'' de preprocesamiento encargada específicamente para capturar patrones de comportamiento financiero (Feature Engineering).
+	
+	
+	\subsection{Exploración y Visualización de datos}
+	El análisis exploratorio inicial se centró en auditar la calidad y estructura de la información. Para garantizar un análisis exhaustivo y estandarizado, se utilizó la librería \texttt{ydata-profiling}\footnote{Documentación oficial de ydata-profiling: \url{https://docs.profiling.ydata.ai/latest/}} \footnote{Implementación EDA usando ydata-profiling: \href{https://github.com/migueldlfuentem/ml-finance-churn-model/blob/20e78985383c4679f79a788a40a5ff6bd64534d9/notebooks/01_exploratory_data_analysis.ipynb}{01\_exploratory\_data\_analysis.ipynb (GitHub)}}, generando un reporte automatizado sobre las 8,000 instancias del conjunto de entrenamiento. Este análisis reveló la estructura fundamental de los datos y guió las decisiones de preprocesamiento:
+	
+	\begin{itemize}
+		\item \textbf{Estructura General:} El dataset consta de 13 variables (6 numéricas, 6 categóricas y 1 de texto). No se detectaron filas duplicadas, lo que garantiza la integridad inicial de las observaciones.
+		\item \textbf{Análisis de Valores Faltantes:} Se identificó que el 5.6\% de las celdas totales están vacías (5,848 celdas). Las variables afectadas incluyen \texttt{CreditScore}, \texttt{Balance}, \texttt{NumOfProducts}, \texttt{HasCrCard}, \texttt{EstimatedSalary} y \texttt{Surname}. Esta dispersión de nulos valida la necesidad de implementar estrategias de imputación robustas (dentro de un Pipeline) en lugar de la eliminación de registros, lo cual reduciría drásticamente el tamaño muestral.
+		\item \textbf{Alertas de Calidad de Datos:}
+		\begin{itemize}
+			\item \texttt{CustomerId}: Columna que cuenta únicamente con valores únicos, candidata a eliminación inmediata por nulo poder predictivo.
+			\item \texttt{Surname}: Alta cardinalidad con valores faltantes. Su inclusión conlleva riesgo de sobreajuste y sesgos no generalizables.
+			\item \texttt{Balance}: Se detectó una alta presencia de ceros (28.5\%), indicando un segmento de clientes que operan solo con productos de crédito o servicios sin saldo en cuenta. Esto motivó la creación de la variable \texttt{HasBalance}.
+		\end{itemize}
+	\end{itemize}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{alerts.png}
+		\caption{Alertas obtenidas mediante ydata-profiling}
+		\label{fig:eda}
+	\end{figure}
+	
+	El hallazgo más relevante reside en la variable objetivo: se confirma una \textbf{distribución desigual}, con una proporción aproximada de 80/20 (Clase 0 vs Clase 1), como se puede ver en la Figura \ref{fig:eda}. Este desequilibrio, sumado al tamaño moderado del dataset, tiene dos implicaciones directas en la metodología de desarrollo:
+	
+	\begin{enumerate}
+		\item \textbf{Selección de Métricas:} Invalida el uso del \textit{Accuracy} como métrica única, ya que un modelo trivial que predijera ``No Abandono'' para todos los casos tendría un alto acierto pero nula utilidad. Por ello, se priorizarán métricas sensibles a la clase minoritaria como \textit{F1-Score}.
+		\item \textbf{Estrategia de Rebalanceo:} Para mitigar el riesgo de que el modelo ignore los patrones de la clase de interés, se plantea el uso de técnicas de generación de datos sintéticos (\textit{oversampling})\footnote{Para la generación de datos sintéticos se hace uso de la librería \href{https://imbalanced-learn.org/stable/references/over_sampling.html}{Imbalanced Learn}} con el fin de robustecer las fronteras de decisión.
+	\end{enumerate}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{eda_target_distribution.png}
+		\caption{Análisis de la distribución de la variable Clase.}
+		\label{fig:eda}
+	\end{figure}
+	
+	Tras analizar la variable clase y con el objetivo de analizar el impacto que tienen el resto de variables sobre esta se procedió a generar la matriz de correlación utilizando los datos de entrenamiento sin preprocesar.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{eda_correlation_matrix.png}
+		\caption{Matriz de Correlación}
+		\label{fig:corr}
+	\end{figure}
+	
+	
+	\subsection{Feature Engineering}
+	Una vez analizado el dataset de entrenamiento se procedió a identificar por un lado las variables que podrían introducir ruido al modelo, así como las transformaciones a realizar sobre dicho dataset para mejorar el rendimiento del modelo. Con ese objetivo se decidió eliminar explicitamente:
+	\begin{itemize}
+		\item \textbf{Surname:} Aunque existen correlaciones familiares, incluir el apellido en el entrenamiento puede llevar al modelo a memorizar apellidos específicos en lugar de patrones financieros, provocando sobreajuste y \textit{data leakage}.
+		\item \textbf{CustomerId:} Identificadores secuenciales sin valor predictivo causal.
+	\end{itemize}
+	Además se identificaron ciertas variables categóricas que debían ser preprocesadas porque aportaban información de utilidad al modelo, como \textit{gender} o \textit{geography}.
+	
+	Más allá de las variables originales, el análisis del comportamiento de los clientes por Edad, Género y País reveló patrones no lineales\footnote{Para más información consultar \href{https://github.com/migueldlfuentem/ml-finance-churn-model/blob/20e78985383c4679f79a788a40a5ff6bd64534d9/notebooks/01_exploratory_data_analysis.ipynb}{01\_exploratory\_data\_analysis.ipynb (GitHub)}}. Para capturar esta complejidad, se implementó la clase \texttt{FeatureEngineer} que genera las siguientes variables sintéticas, agrupadas por su naturaleza:
+	
+	\subsubsection{Variables de Balance y Riqueza}
+	El saldo en cuenta es un indicador clave, pero su distribución (con muchos ceros y una cola larga) dificulta el aprendizaje.
+	\begin{itemize}
+		\item \textbf{HasBalance:} Variable binaria que separa a los usuarios puramente transaccionales (saldo 0) de los ahorradores. Justificada por el 28\% de ceros en el dataset.
+		\item \textbf{LogBalance:} Transformación logarítmica ($\log(1+x)$) para reducir el sesgo de la distribución y minimizar el impacto de clientes con saldos muy elevados.
+		\item \textbf{BalancePerProduct:} Ratio que mide la densidad financiera. Un saldo alto repartido en muchos productos puede indicar menor liquidez real que el mismo saldo en un solo producto.
+		\item \textbf{BalanceSalaryRatio:} Normaliza el saldo por los ingresos estimados, proporcionando una medida de la capacidad de ahorro relativa del cliente, independiente de su nivel absoluto de riqueza.
+	\end{itemize}
+	
+	\subsubsection{Interacciones Demográficas y de Antigüedad}
+	La edad demostró ser un factor de riesgo crítico (especialmente entre 40-60 años), pero su impacto varía según la lealtad y actividad del cliente.
+	\begin{itemize}
+		\item \textbf{Age\_Active\_Interaction:} Captura si la actividad (\texttt{IsActiveMember}) actúa como factor protector en edades de alto riesgo.
+		\item \textbf{TenureAgeRatio:} Proporción de la vida del cliente que ha permanecido en el banco. Un valor alto en clientes jóvenes indica una fidelidad temprana muy fuerte.
+		\item \textbf{CreditScore\_Age\_Ratio:} Relativiza la calificación crediticia por la edad, ayudando a distinguir entre un historial crediticio ``maduro'' y uno ``precoz''.
+	\end{itemize}
+	
+	\subsubsection{Perfil de Crédito}
+	La solvencia del cliente es un predictor directo de estabilidad.
+	\begin{itemize}
+		\item \textbf{CreditScore\_Salary\_Ratio:} Relaciona la fiabilidad crediticia con los ingresos. Discrepancias altas aquí pueden indicar perfiles de riesgo o VIPs infravalorados.
+		\item \textbf{HighCreditScore:} Variable binaria para segmentar clientes con score superior a 700, umbral estándar de alta solvencia que suele correlacionar con menor tasa de abandono.
+	\end{itemize}
+	
+	\subsubsection{Engagement y Scores Sintéticos}
+	Finalmente, se crearon métricas compuestas para resumir la vinculación global del cliente.
+	\begin{itemize}
+		\item \textbf{HasMultipleProducts:} Variable binaria ($>1$ producto). Se observó que había una relación no lineal curiosa derivada del número de productos contratados. Aquellos usuarios que tenían contratados más de 1 producto corrían un mayor riesgo de dejar el banco.
+		\item \textbf{Products\_Active\_Interaction:} Refuerza la señal de clientes ``multi-producto'' que además son activos, el perfil más deseable y retenible.
+		\item \textbf{CustomerEngagement:} Score aditivo (Actividad + Tarjeta + Multi-producto). Un valor alto indica un cliente profundamente integrado en el ecosistema del banco.
+		\item \textbf{RiskScore:} Score heurístico inverso que suma factores de riesgo conocidos: edad avanzada ($>50$), exceso de productos ($>2$, posible mala venta cruzada), inactividad y saldo cero.
+	\end{itemize}
+	
+	\subsection{Diseño de Pipelines de Preprocesamiento}
+	Una vez definidas las transformaciones y seleccionadas las variables a eliminar, se diseñó una pipeline de procesamiento modular utilizando \texttt{Pipelines} de \textit{scikit-learn} e \textit{imbalanced-learn}. Este enfoque garantiza la reproducibilidad y evita fugas de información al asegurar que todas las transformaciones (incluyendo el re-muestreo) se ajusten exclusivamente con los datos de entrenamiento en cada pliegue de la validación cruzada.
+	
+	El flujo de procesamiento completo, encapsulado en la función \texttt{create\_full\_pipeline}, consta de las siguientes etapas secuenciales:
+	
+	\begin{enumerate}
+		\item \textbf{Selección y Generación de Variables:}
+		\begin{itemize}
+			\item \texttt{DropFeatures}: Eliminación inicial de identificadores (\texttt{CustomerId}, \texttt{Surname}).
+			\item \texttt{FeatureEngineer}: Generación de las variables sintéticas detalladas en la sección anterior.
+		\end{itemize}
+		
+		\item \textbf{Transformación de Columnas (Preprocessor):}
+		Se aplica un tratamiento diferenciado mediante \texttt{ColumnTransformer} según el tipo de variable:
+		\begin{itemize}
+			\item \textbf{Numéricas:} Se utiliza una estrategia de imputación por la \textbf{mediana} (robusta a distribuciones sesgadas) seguida de un escalado con \texttt{RobustScaler}. Se eligió este \textit{scaler} en lugar de \textit{StandardScaler} debido a la presencia de valores atípicos significativos en variables financieras como \texttt{Balance} y \texttt{EstimatedSalary}.
+			\item \textbf{Categóricas:} Imputación por la moda y codificación mediante \texttt{OneHotEncoder}, configurado con \texttt{handle\_unknown='ignore'} para garantizar la robustez en producción frente a nuevas categorías.
+		\end{itemize}
+		
+		\item \textbf{Gestión del Desbalanceo (SMOTE):}
+		Se integró \texttt{SMOTE} (\textit{Synthetic Minority Over-sampling Technique}) con un ratio de 0.5 como paso intermedio en el pipeline. Es crucial destacar el uso de la clase \texttt{ImbPipeline} de la librería \textit{imbalanced-learn}, la cual asegura que la generación de muestras sintéticas ocurra \textbf{únicamente durante el entrenamiento} (\texttt{fit}), dejando los datos de validación y test inalterados para una evaluación honesta de las métricas.
+		
+		\item \textbf{Actualización Threshold Modelo:} Con el objetivo de mejorar la validación final del modelo se procedió a realizar una estimación del valor del threshold que maximiza la métrica a evaluar. Se detectó que esta fase de preprocesamiento incurría en una peor generalización, produciendo overfitting.
+		
+		\item \textbf{Modelo Clasificador:} La etapa final del pipeline que recibe los datos procesados y balanceados para realizar la predicción.
+	\end{enumerate}
+	
+	
+	
+	\section{Modelado y Entrenamiento}
+	
+	\subsection{Selección y Optimización de Algoritmos}
+	Para abordar el problema se evaluó un abanico diverso de algoritmos con el objetivo de encontrar el mejor equilibrio entre sesgo y varianza. Basándonos en la comparativa realizada (ver Figura \ref{fig:model_comparison}), los modelos seleccionados incluyen:
+	
+	\begin{enumerate}
+		
+		\item \textbf{Gaussian Naive Bayes:} Modelo probabilístico fundamentado en el teorema de Bayes. Se aplicó asumiendo una distribución gaussiana para las características continuas, destacando por su eficiencia computacional en alta dimensionalidad.
+		
+		\item \textbf{K-Nearest Neighbors (KNN):} Algoritmo no paramétrico basado en instancias ($k=5$). Se configuró utilizando una ponderación por distancia (\textit{weights='distance'}), lo que permite que los vecinos más cercanos tengan mayor influencia en la predicción que los lejanos, mejorando la sensibilidad en fronteras de decisión complejas.
+		
+		\item \textbf{Multilayer Perceptron (MLP):} Red neuronal artificial configurada con una arquitectura de dos capas ocultas densas (64 y 32 neuronas) y función de activación ReLU. Se empleó el optimizador Adam y una estrategia de \textit{Early Stopping} para prevenir el sobreajuste durante el entrenamiento.
+		
+		\item \textbf{Random Forest:} Ensamble de tipo \textit{Bagging} configurado con 150 estimadores y una profundidad máxima limitada a 10 para controlar la complejidad. Se aplicó un ajuste de pesos (\textit{class\_weight='balanced'}) para contrarrestar el desbalance de clases directamente en la función de coste.
+		
+		\item \textbf{Modelos de Boosting (XGBoost, LightGBM, CatBoost):} Algoritmos de \textit{Gradient Boosting} de última generación. Estos modelos dominaron el desempeño gracias a su configuración específica para manejar clases desbalanceadas, \textit{is\_unbalance}) y su robustez nativa frente a valores nulos y variables categóricas.
+	\end{enumerate}
+	
+	\textbf{Estrategia de Optimización (GridSearchCV):}
+	No nos limitamos al entrenamiento con parámetros por defecto. Para cada uno de los algoritmos mencionados, se implementó un proceso de \textit{fine-tuning} utilizando \textbf{GridSearchCV}. Esta técnica realizó una búsqueda exhaustiva sobre una malla de hiperparámetros predefinida (ej. profundidad de árboles, tasa de aprendizaje, regularización), utilizando validación cruzada estratificada para seleccionar la configuración que maximizaba el F1-Score. Este paso fue crucial para controlar el sobreajuste y adaptar la complejidad de los modelos a las características específicas del dataset.
+	
+	\subsection{Estrategia de Validación y MLOps}
+	
+	Para garantizar la robustez de los resultados y la reproducibilidad de los experimentos, se implementó un flujo de trabajo riguroso que integra validación cruzada estratificada con herramientas de MLOps\footnote{Guía de principios y mejores prácticas de \href{https://ml-ops.org/content/mlops-principles}{MLOPs}}.
+	
+	\subsubsection{Validación Cruzada y Prevención de Fugas de Datos}
+	Se utilizó una estrategia de \textit{Stratified K-Fold Cross-Validation} con $k=5$ particiones. A diferencia de una división simple, esto asegura que la proporción de clases (Churn vs. No-Churn) se mantenga constante en cada pliegue, lo cual es vital en datasets desbalanceados.
+	
+	Un aspecto crucial de la implementación fue la inclusión de la técnica de sobremuestreo (SMOTE) \textbf{dentro} del bucle de validación cruzada. El pipeline de entrenamiento aplica SMOTE únicamente a los datos de entrenamiento de cada pliegue ($X_{train\_fold}$), dejando los datos de validación ($X_{val\_fold}$) intactos y con su distribución original. Esto evita el problema de \textit{Data Leakage}, asegurando que las métricas de evaluación reflejen fielmente el desempeño del modelo en datos reales no sintéticos.
+	
+	\subsubsection{Experiment Tracking y Registro de Modelos con MLflow}
+	Siguiendo las mejores prácticas de MLOps, se integró \textbf{MLflow} para la gestión del ciclo de vida de los modelos. Esta herramienta permitió:
+	
+	\begin{itemize}
+		\item \textbf{Experiment Tracking:} Registro automático de hiperparámetros (e.g., estrategia de SMOTE, semilla aleatoria), métricas agregadas (AUC promedio, F1-Score, desviación estándar) y artefactos gráficos.
+		\item \textbf{Model Registry:} Los modelos entrenados con el umbral optimizado se registraron automáticamente en el repositorio de modelos de MLflow\footnote{Configuración del registro de modelos en MLflow: \href{https://github.com/migueldlfuentem/ml-finance-churn-model/blob/main/src/training/trainer.py}{training.py}} (e.g., bajo el nombre \textit{churn-catboost}). Esto facilita la trazabilidad, el control de versiones y la futura inferencia.
+	\end{itemize}
+
+	\section{Evaluación y Resultados}
+	
+	Tras la ejecución del pipeline de validación cruzada estratificada con optimización de umbrales, se obtuvieron métricas que permiten contrastar la eficacia de las distintas familias de algoritmos evaluadas. A continuación, se discuten los hallazgos tanto desde una perspectiva cuantitativa como cualitativa.
+	
+	\subsection{Comparativa de Rendimiento (F1-Score Optimizado)}
+	Tal y como se observa en la Figura \ref{fig:model_comparison}, existe una clara jerarquización en el desempeño de los modelos. El uso de la métrica F1-Score optimizada (ajustando el umbral de decisión $t$ para cada fold) revela que los modelos de ensamble y la red neuronal dominan sobre los enfoques clásicos.
+	
+	\begin{itemize}
+		\item \textbf{Dominio de Ensembles Boosting:} \textit{CatBoost} se posiciona como el modelo con mejor rendimiento global (F1 $\approx$ 0.61), seguido muy de cerca por \textit{LightGBM} y \textit{XGBoost}. Esto valida la hipótesis de que los árboles de decisión potenciados por gradiente son el estado del arte para datos tabulares.
+		\item \textbf{Competitividad del MLP:} Es destacable que el Perceptrón Multicapa (\textit{MLP\_Network}) alcanza un rendimiento equiparable a los ensambles (F1 $\approx$ 0.60). Esto sugiere que, aplicando una arquitectura y técnicas adecuadas la red es capaz de capturar las `no linealidades'' del comportamiento del cliente.
+		\item \textbf{Limitaciones de Modelos Simples:} \textit{KNN} y \textit{Gaussian Naive Bayes} muestran un desempeño significativamente inferior (F1 $< 0.55$). En el caso de KNN, la "maldición de la dimensionalidad" y el ruido en las fronteras de decisión locales penalizan el resultado.
+	\end{itemize}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{training_model_comparison_final.png}
+		\caption{Comparativa de F1-Score tras la optimización del umbral de decisión.}
+		\label{fig:model_comparison}
+	\end{figure}
+	
+	\subsection{Análisis de Capacidad Discriminativa (ROC-AUC)}
+	Mientras que el F1-Score depende del umbral, el área bajo la curva ROC (AUC) nos permite medir la capacidad intrínseca del modelo para separar las clases (Churn vs. No-Churn) independientemente del punto de corte. Las curvas promedio de la validación cruzada (Figura \ref{fig:roc_curves}) arrojan conclusiones técnicas relevantes:
+	
+	\begin{itemize}
+		\item \textbf{Convergencia de Modelos Top:} Los modelos \textit{MLP}, \textit{Random Forest} y \textit{CatBoost} convergen en un AUC medio muy similar ($\approx 0.84$). De este hecho es posible interpretar que con las variables actuales, hemos extraído prácticamente toda la señal predictiva disponible.
+		\item \textbf{Estabilidad (Varianza):} La desviación estándar del AUC ($\pm 0.01$ para los mejores modelos) es baja, lo que indica que el proceso de entrenamiento es robusto y que los modelos generalizan bien entre los diferentes pliegues de validación, sin sufrir de sobreajuste severo a particiones específicas de datos.
+	\end{itemize}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{training_roc_curves_final.png}
+		\caption{Curvas ROC promedio (5-Fold CV).}
+		\label{fig:roc_curves}
+	\end{figure}
+	
+	\subsection{Selección del Modelo Final}
+	Siguiendo los criterios de evaluación del proyecto, se selecciona \textbf{CatBoost} como el modelo final para la predicción en el conjunto de test de Kaggle. A continuación se muestran los motivos seguidos para tomar esta decisión:
+	\begin{itemize}
+		\item \textbf{Maximización de F1:} Ha demostrado el valor medio más alto en la métrica objetivo tras la optimización del umbral.
+		\item \textbf{Robustez:} Su AUC de 0.839 es estadísticamente equivalente al del mejor modelo (MLP 0.841), pero CatBoost ofrece mayor interpretabilidad (feature importance) y menor riesgo de degradación ante valores atípicos en producción.
+		\item \textbf{Generalización:} La baja varianza en la validación cruzada garantiza que el modelo no ha memorizado el ruido del conjunto de entrenamiento. 
+	\end{itemize}
+	
+	\section{Conclusiones y Líneas Futuras}
+	
+	La realización de este proyecto me ha permitido contrastar la teoría del aprendizaje automático con la realidad de los datos financieros desbalanceados. Más allá de la obtención de una métrica competitiva en Kaggle (Figura \ref{fig:kaggle}), el valor principal de este estudio reside en la validación metodológica del flujo de trabajo.
+	
+	A continuación, se sintetizan las lecciones aprendidas y hallazgos clave:
+	
+	\begin{itemize}
+		\item \textbf{El Feature Engineering y el Preprocesamiento supera a la Selección de Algoritmos:} Si bien se invirtió tiempo en la optimización de hiperparámetros, el mayor incremento en el rendimiento provino de la creación de variables sintéticas con orientación de negocio (e.g., \textit{BalanceSalaryRatio}, \textit{AgeActiveInteraction}). Esto confirma que enriquecer la representación de los datos aporta más valor que la complejidad marginal del modelo.
+		
+		\item \textbf{Paridad de Rendimiento (MLP vs. Boosting):} Contrario a la creencia popular de que los árboles de decisión (Gradient Boosting) son indiscutiblemente superiores en datos tabulares, nuestros experimentos mostraron que un Perceptrón Multicapa bien regularizado (Early Stopping, Dropout) y con una arquitectura adecuada puede alcanzar un AUC (0.841) equivalente o incluso superior a modelos como XGBoost. Esto abre la puerta a considerar arquitecturas de Deep Learning para este problema si se requiriera mayor escalabilidad.
+		
+		\item \textbf{Robustez mediante MLOps:} La integración de MLflow y el diseño de pipelines encapsulados (evitando fugas de datos con \textit{Surname} y aplicando SMOTE dentro del CV) han sido determinantes. Esta infraestructura no solo garantiza la reproducibilidad académica, sino que reduce drásticamente el riesgo de degradación del modelo al pasar a un entorno productivo real.
+		
+	\end{itemize}
+	
+	\textbf{Líneas Futuras:}
+	Como trabajo futuro, se propone explorar técnicas de ensamblaje heterogéneo (Stacking) combinando las predicciones del MLP y CatBoost para intentar romper el "techo de cristal" del 0.84 AUC, así como incorporar técnicas de explicabilidad (SHAP values) para proporcionar a los gestores bancarios el "porqué" de cada riesgo de fuga detectado.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.6\textwidth]{kaggle_score.png}
+		\caption{Resultado final en la plataforma Kaggle. Usuario: migueldlfuentm}
+		\label{fig:kaggle}
+	\end{figure}
+	
+\end{document}

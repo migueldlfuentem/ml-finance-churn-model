@@ -20,10 +20,10 @@ PARAMS_PATH = PROJECT_ROOT / 'config' / 'params.yaml'
 SELECTED_FEATURES_PATH = PROJECT_ROOT / 'config' / 'selected_features.json'
 
 def load_params(params_path: Path = PARAMS_PATH) -> FullConfigSchema:
-    """Carga la configuración estática desde params.yaml validada con Pydantic."""
-    logger.info("Cargando parámetros desde %s", params_path)
+    """Load static configuration from params.yaml validated with Pydantic."""
+    logger.info("Loading parameters from %s", params_path)
     if not params_path.exists():
-        logger.error("No se encuentra el archivo params: %s", params_path)
+        logger.error("Params file not found: %s", params_path)
         raise FileNotFoundError(f"Params file not found in: {params_path}")
     
     with open(params_path, 'r') as f:
@@ -33,32 +33,33 @@ def load_params(params_path: Path = PARAMS_PATH) -> FullConfigSchema:
                 raise ValueError("Empty params.yaml file.")
             return FullConfigSchema(**params_dict)
         except (yaml.YAMLError, ValidationError) as e:
-            logger.exception("Error al parsear params.yaml")
+            logger.exception("Error parsing params.yaml")
             raise e
 
 def load_selected_features(json_path: Path = SELECTED_FEATURES_PATH) -> Optional[SelectedFeaturesConfig]:
-    """
-    Intenta cargar las variables seleccionadas por Boruta.
-    Retorna None si el archivo no existe (aún no se ha ejecutado el feature selection).
+    """Attempt to load features selected by Boruta.
+    
+    Returns:
+        None if the file doesn't exist (feature selection hasn't been executed yet).
     """
     if not json_path.exists():
-        logger.warning(f"No se encontró {json_path.name}. Se usarán las features por defecto del YAML.")
+        logger.warning(f"{json_path.name} not found. Default features from YAML will be used.")
         return None
     
     try:
         with open(json_path, 'r') as f:
             data = json.load(f)
-            logger.info(f"Features dinámicas cargadas desde {json_path.name}")
+            logger.info(f"Dynamic features loaded from {json_path.name}")
             return SelectedFeaturesConfig(**data)
     except json.JSONDecodeError:
-        logger.error(f"Error decodificando {json_path}. El archivo podría estar corrupto.")
+        logger.error(f"Error decoding {json_path}. File might be corrupted.")
         return None
 
 
 params = load_params()
 
 _dynamic_features = load_selected_features()
-logger.info(f"Features dinámicas: {_dynamic_features}")
+logger.info(f"Dynamic features: {_dynamic_features}")
 DATA_DIR = PROJECT_ROOT / 'data'
 RAW_DATA_DIR = DATA_DIR / 'raw'
 PROCESSED_DATA_DIR = DATA_DIR / 'processed'
@@ -75,8 +76,8 @@ TARGET_VARIABLE = params.data_config.target
 if _dynamic_features:
     NUMERIC_FEATURES = _dynamic_features.features.numeric
     CATEGORICAL_FEATURES = _dynamic_features.features.categorical
-    logger.info("🚀 Usando configuración de features DINÁMICA (Boruta).")
+    logger.info("🚀 Using DYNAMIC feature configuration (Boruta).")
 else:
     NUMERIC_FEATURES = params.data_config.features.numeric
     CATEGORICAL_FEATURES = params.data_config.features.categorical
-    logger.info("⚓ Usando configuración de features ESTÁTICA (params.yaml).")
+    logger.info("⚓ Using STATIC feature configuration (params.yaml).")

@@ -22,32 +22,24 @@ def create_preprocessor(
     numeric_strategy: str = 'median',
     categorical_strategy: str = 'most_frequent'
 ) -> ColumnTransformer:
-    """
-    Crea el preprocessor con transformaciones para features numéricas y categóricas.
+    """Create preprocessor with transformations for numeric and categorical features.
     
-    Parameters
-    ----------
-    numeric_features : List[str], optional
-        Lista de features numéricas. Si no se especifica, usa NUMERIC_FEATURES del config.
-    categorical_features : List[str], optional
-        Lista de features categóricas. Si no se especifica, usa CATEGORICAL_FEATURES del config.
-    numeric_strategy : str, default='median'
-        Estrategia de imputación para features numéricas
-    categorical_strategy : str, default='most_frequent'
-        Estrategia de imputación para features categóricas
+    Args:
+        numeric_features: List of numeric features. If not specified, uses NUMERIC_FEATURES from config. Defaults to None.
+        categorical_features: List of categorical features. If not specified, uses CATEGORICAL_FEATURES from config. Defaults to None.
+        numeric_strategy: Imputation strategy for numeric features. Defaults to 'median'.
+        categorical_strategy: Imputation strategy for categorical features. Defaults to 'most_frequent'.
         
-    Returns
-    -------
-    ColumnTransformer
-        Preprocessor configurado
+    Returns:
+        Configured ColumnTransformer preprocessor.
     """
     if numeric_features is None:
         numeric_features = NUMERIC_FEATURES
     if categorical_features is None:
         categorical_features = CATEGORICAL_FEATURES
     
-    logger.info(f"Creando preprocessor con {len(numeric_features)} features numéricas "
-                f"y {len(categorical_features)} features categóricas")
+    logger.info(f"Creating preprocessor with {len(numeric_features)} numeric features "
+                f"and {len(categorical_features)} categorical features")
     
     numeric_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy=numeric_strategy)),
@@ -75,43 +67,39 @@ def create_full_pipeline(
     use_smote: bool = True,
     smote_sampling_strategy: float = 0.5,
     features_to_drop: Optional[List[str]] = None,
-    numeric_features: Optional[List[str]] = None,
-    categorical_features: Optional[List[str]] = None
+    numeric_features: Optional[List[str]] = NUMERIC_FEATURES,
+    categorical_features: Optional[List[str]] = CATEGORICAL_FEATURES
 ) -> ImbPipeline:
-    """
-    Crea el pipeline completo de ML incluyendo feature engineering, preprocessing y modelo.
+    """Create complete ML pipeline including feature engineering, preprocessing and model.
     
-    Parameters
-    ----------
-    model : estimator
-        Modelo de scikit-learn o compatible
-    use_smote : bool, default=True
-        Si True, aplica SMOTE para balancear clases
-    smote_sampling_strategy : float, default=0.5
-        Ratio de sampling para SMOTE
-    features_to_drop : List[str], optional
-        Features a eliminar (ej: ['CustomerId', 'Surname'])
-    numeric_features : List[str], optional
-        Features numéricas para el preprocessor
-    categorical_features : List[str], optional
-        Features categóricas para el preprocessor
+    Args:
+        model: Scikit-learn compatible model.
+        use_smote: If True, applies SMOTE for class balancing. Defaults to True.
+        smote_sampling_strategy: Sampling ratio for SMOTE. Defaults to 0.5.
+        features_to_drop: Features to remove (e.g., ['CustomerId', 'Surname']). Defaults to None.
+        numeric_features: Numeric features for preprocessor. Defaults to None.
+        categorical_features: Categorical features for preprocessor. Defaults to None.
         
-    Returns
-    -------
-    ImbPipeline
-        Pipeline completo configurado
+    Returns:
+        Configured complete ImbPipeline.
     """
     if features_to_drop is None:
-        features_to_drop = ['CustomerId', 'Surname']
+        features_to_drop = [
+            'CustomerId',
+            'Surname',
+        ]
     
-    logger.info(f"Creando pipeline completo con modelo: {model.__class__.__name__}")
-    logger.info(f"SMOTE: {use_smote}, Features a eliminar: {features_to_drop}")
+    logger.info(f"Creating complete pipeline with model: {model.__class__.__name__}")
+    logger.info(f"SMOTE: {use_smote}, Features to drop: {features_to_drop}")
+
+    numeric_features = [f for f in numeric_features if f not in features_to_drop]
+    categorical_features = [f for f in categorical_features if f not in features_to_drop]
     
     preprocessor = create_preprocessor(numeric_features, categorical_features)
     
     steps = [
-        ('drop_features', DropFeatures(features_to_drop=features_to_drop)),
         ('engineer', FeatureEngineer()),
+        ('drop_features', DropFeatures(features_to_drop=features_to_drop)),
         ('preprocessor', preprocessor),
     ]
     
